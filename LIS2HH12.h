@@ -1,9 +1,3 @@
-/*
- * LIS2HH12.h
- *
- *  Created on: 13/09/2019
- *      Author: manuelposada
- */
 
 #ifndef DRIVERS_HD_LIS2HH12_H_
 #define DRIVERS_HD_LIS2HH12_H_
@@ -88,17 +82,16 @@
  **	 Control Register 4 (R/W)
  ** ===================================================================
 */
-#define CTRL_REG4   0x23U
-
+#define CTRL_REG4        0x23U
 #define SIM              ()
 #define I2C_DISABLE      ()
 #define IF_ADD_INC       ()
 #define BW_SCALE_ODR     ()
 
-#define _FS_MASK          (0x03U << 4U)
-#define _FS_2G_           (0x00U << 4U)
-#define _FS_4G_           (0x01U << 4U)
-#define _FS_8G_           (0x03U << 4U)
+#define _FS_MASK         (0x03U << 4U)
+#define _FS_2G_          (0x00U << 4U)
+#define _FS_4G_          (0x01U << 4U)
+#define _FS_8G_          (0x03U << 4U)
 
 /*
  ** ===================================================================
@@ -115,32 +108,63 @@
 
 /*
  ** ===================================================================
- **	 Type
+ **	 function prototypes to globals wrappers
+ **
+ **	 I2C basic global write and read functions:
+ **	  - void Write_I2C(uint8_t Address, void *data, uint8_t amount)
+ **	  - void Read_I2C(uint8_t Address, void *Register, uint8_t amount)
  ** ===================================================================
 */
-typedef void (*Write_Fcn )(uint8_t, void*, uint8_t);
-typedef void (*Read_Fcn  )(uint8_t, void*, uint8_t);
+typedef void (*Write_Fcn )(uint8_t, void*, uint8_t);  // I2C Write
+typedef void (*Read_Fcn  )(uint8_t, void*, uint8_t);  // I2c Read
 
+/*
+ ** ===================================================================
+ **	 Structure with information on some accelerometer characteristics
+ **   - Address Salve
+ **   - Scale : 2g, 4g, 8g
+ ** ===================================================================
+*/
 typedef struct {
-	Write_Fcn Write;
-	Read_Fcn  Read;
-	uint8_t   Address;
+	Write_Fcn Write;       // pointer to wrapper function write I2C
+	Read_Fcn  Read;        // pointer to wrapper function Read I2C
+
+	uint8_t   Address;     // Address slave
+	float     Sensitivity; // Sensitivity
+
+	int16_t Raw_AxisX;     // Data Raw 16-bit integer Axis X
+	int16_t Raw_AxisY;	   // Data Raw 16-bit integer Axis Y
+	int16_t Raw_AxisZ;     // Data Raw 16-bit integer Axis Z
+
+	float G_X;             // acceleration in x expressed in gravity
+	float G_Y;			   // acceleration in x expressed in gravity
+	float G_Z;             // acceleration in x expressed in gravity
 }LIS2HH12_t;
 
 /*
  ** ===================================================================
- **	Headers functions
+ **	 Headers functions
+ **
  ** ===================================================================
 */
-
 uint8_t LIS2HH12_Read(LIS2HH12_t *Obj, uint8_t Reg );
+/* =================================================================== */
 uint8_t LIS2HH12_Who_Am_I(LIS2HH12_t *Obj);
+/* =================================================================== */
 void LIS2HH12_Init(LIS2HH12_t *Obj, Write_Fcn Write, Read_Fcn Read, uint8_t Addres_Device);
+/* =================================================================== */
 void LIS2HH12_Write(LIS2HH12_t *Obj, uint8_t Reg, uint8_t data);
+/* =================================================================== */
 void LIS2HH12_PowerDown_Mode(LIS2HH12_t *Obj);
+/* =================================================================== */
 void LIS2HH12_Active_Mode(LIS2HH12_t *Obj, uint8_t Frecuency);
-void LIS2HH12_ReadXYZ(LIS2HH12_t *Obj, int16_t *Data);
+/* =================================================================== */
+void LIS2HH12_ReadXYZ(LIS2HH12_t *Obj);
+/* =================================================================== */
 void LIS2HH12_Update_BDU(LIS2HH12_t *Obj, uint8_t BDU_ON_OFF);
+/* =================================================================== */
 void LIS2HH12_Full_Scale(LIS2HH12_t *Obj, uint8_t Full_Scale);
+/* =================================================================== */
+
 
 #endif /* DRIVERS_HD_LIS2HH12_H_ */

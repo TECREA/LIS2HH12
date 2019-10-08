@@ -1,13 +1,31 @@
 /*
  * LIS2HH12.c
  *
- *  Created on: 13/09/2019
- *      Author: manuelposada
+ * @brief driver to facilitate the use of the LIS2HH12 accelerometer
+ * of the STmicroelectronics
+ *
+ * @brief The LIS2HH12 is an ultra-low-power high-performance three-axis linear
+ * accelerometer belonging to the “pico” family.
+ * The LIS2HH12 has full scales of ±2g/±4g/±8g and is capable of measuring
+ * accelerations with output data rates from 10 Hz to 800 Hz.
+ * The self-test capability allows the user to check the functioning of the sensor
+ * in the final application.
+ * The LIS2HH12 has an integrated first-in, first-out (FIFO) buffer allowing the
+ * user to store data in order to limit intervention by the host processor.
  *
  *
+ * @date 13/09/2019
+ * @Author: MPC
  */
 
 #include "Drivers_Hd/LIS2HH12.h"
+/*
+ ** ===================================================================
+ **	  head of static functions
+ ** ===================================================================
+*/
+static void LIS2HH12_Get_Scale(LIS2HH12_t *Obj);
+
 /*
  ** ===================================================================
  **	  @brief  write a data in the indicated register
@@ -49,10 +67,13 @@ void LIS2HH12_Init(LIS2HH12_t *Obj, Write_Fcn Write, Read_Fcn Read, uint8_t Addr
 	Obj->Write = Write;
 	Obj->Read = Read;
 	Obj->Address = Addres_Device;
+	LIS2HH12_Get_Scale(Obj);
 }
 /*
  ** ===================================================================
  **	  @brief  Who Am I
+ **
+ **	  @return this method returns 0x41 factory loaded value by default
  ** ===================================================================
 */
 uint8_t LIS2HH12_Who_Am_I(LIS2HH12_t *Obj) {
@@ -114,25 +135,47 @@ void LIS2HH12_Update_BDU(LIS2HH12_t *Obj, uint8_t BDU_ON_OFF) {
  **	  will be stored
  ** ===================================================================
 */
-void LIS2HH12_ReadXYZ(LIS2HH12_t *Obj, int16_t *Data ) {
+void LIS2HH12_ReadXYZ(LIS2HH12_t *Obj) {
 	uint8_t Buffer[8];
 	Buffer[0] = OUT_X_L;
 	Obj->Read(Obj->Address, Buffer, 6);
-	Data[0] = (int16_t)Buffer[1] << 8 | Buffer[0];
-	Data[1] = (int16_t)Buffer[3] << 8 | Buffer[2];
-	Data[2] = (int16_t)Buffer[5] << 8 | Buffer[4];
+
+	Obj->Raw_AxisX = (int16_t)Buffer[1] << 8 | Buffer[0];
+	Obj->Raw_AxisY = (int16_t)Buffer[3] << 8 | Buffer[2];
+	Obj->Raw_AxisZ = (int16_t)Buffer[5] << 8 | Buffer[4];
+
+	Obj->G_X = (float)Obj->Raw_AxisX*Obj->Sensitivity;
+	Obj->G_Y = (float)Obj->Raw_AxisY*Obj->Sensitivity;
+	Obj->G_Z = (float)Obj->Raw_AxisZ*Obj->Sensitivity;
 }
 
 /*
  ** ===================================================================
- **	  @brief
+ **	  @brief This method configures the sensitivity of gravity in which
+ **	  it will work.
+ **	  @param macros defined in header file LIS2HH12.h
+ **	  _FS_2G_ _FS_4G_ _FS_8G_.
  ** ===================================================================
 */
-
 void LIS2HH12_Full_Scale(LIS2HH12_t *Obj, uint8_t Full_Scale) {
 	uint8_t data;
 	data = LIS2HH12_Read(Obj, CTRL_REG4);
 	LIS2HH12_Write(Obj, CTRL_REG4, (data & ~_FS_MASK) | Full_Scale);
+	LIS2HH12_Get_Scale(Obj);
+}
+/*
+ ** ===================================================================
+ **	  @brief This method obtains the sensitivity with which the device is
+ **	  currently working and configures the sensitivity factor by storing
+ **	  it in the sensitivity member of the main structure.
+ ** ===================================================================
+*/
+static void LIS2HH12_Get_Scale(LIS2HH12_t *Obj) {
+	uint8_t value;
+	value = LIS2HH12_Read(Obj, CTRL_REG4);
+	if((value & _FS_MASK) == _FS_2G_) Obj->Sensitivity = 0.061f;
+	if((value & _FS_MASK) == _FS_4G_) Obj->Sensitivity = 0.122f;
+	if((value & _FS_MASK) == _FS_8G_) Obj->Sensitivity = 0.244f;
 }
 
 
